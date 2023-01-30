@@ -108,35 +108,65 @@ if __name__ == "__main__":
 
         parser.add_argument('--metadata',
                         nargs = '?',
-                        help = 'Input the metadata you would like to append to the pairwise SNV rates.',
+                        help = 'Input the metadata you would like to append to the pairwise SNV rates. Note: metadata in character will be combined using $, e.g. Vegan$Omnivore. \
+                            metadata in numeric will be presented by difference (seq1 - seq2), e.g. 1.5',
                         type = str,
                         default = None)
                         
         parser.add_argument('--entry_col',
                         nargs = '?',
-                        help = 'Specify the column which contains the entries (i.e. FASTA headers). Use this feature only when --metadata option is being used.',
+                        help = 'Specify the column which contains the entries (i.e. FASTA headers). Use this feature only when --metadata option is being used. \
+                            The first column will be used as default if this option is not specified.',
                         type = str,
                         default = None)
         
         parser.add_argument('--cols_kept_o_rm',
                             nargs = '?',
-                            help = "Input the metadata columns you want to keep (delimited by [;]) or remove (delimited by [,]) from the whole input metadata table. default [None]. Use this feature only when --metadata option is being used.",
+                            help = "Input the metadata columns you want to keep (e.g. k,Diet,BMI) or remove (e.g. r,Diet,BMI) from the whole input metadata table. default [None].\
+                                Use this feature only when --metadata option is being used.",
                             type = str,
                             default = None)     
 
         parser.add_argument('--opt_tab',
                         nargs = '?',
-                        help = 'Specify the output table for holding pairwise SNV rates.',
+                        help = 'Specify the name for the output table for holding pairwise SNV rates.',
                         type = str,
                         default = None)    
         
         return vars(parser.parse_args())    
     
-    snv_generator = calc_snv_all_pairs("group_1003.fa.aln")
-    md_df = pd.read_csv("mag_metadata.tsv", sep = "\t", index_col = False)
-    # df = pd.DataFrame(snv_generator)
-    # df.to_csv("test.tsv", sep = "\t", index = False, header = False)
-    # test = add_metadata(snv_generator, md_df, 'mag_id')
-    # df_ = pd.DataFrame(test)
-    # print(df)
+    pars = read_args(sys.argv)
+    snv_generator = calc_snv_all_pairs(pars["fasta"])
+    def clean_metadata(md_df, keep_o_rm_cols):
+        if keep_o_rm_cols:
+            flag = pars["cols_kept_o_rm"].split(",")[0]
+            cols = pars["cols_kept_o_rm"].split(",")[1:]
+            if flag == 'k':
+                cols = [md_df.columns[0]] + cols
+                md_df = md_df[cols]
+            elif flag == 'r':
+                md_df = md_df.drop(cols, axis = 1)
+            else:
+                sys.exit("If you want to keep certain metadata columns, please use the syntaxy: k,column_name1,column_name2,......" + "\n" + 
+                         "If you want to remove certain metadata columns, please use the syntaxy: r,column_name1,column_name2,......" + "\n" +
+                         "If you want to keep all information from the metadata file, please do not use --cols_kept_o_rm.")
+        else:
+            md_df = md_df
+        
+        return md_df
+    if pars['metadata']:
+        md_df = pd.read_csv(pars['metadata'], sep = "\t", index_col = False)
+        md_df = clean_metadata(md_df, pars['cols_kept_o_rm'])
+        if pars['entry_col']:
+            e_id = pars['entry_col']
+        else:
+            e_id = list(md_df.columns)[0]
+        
+        opt_df = pd.DataFrame(add_metadata(snv_generator, md_df, e_id), 
+                              columns = ["entry_id", "seq1", "seq2", "snv_rate", "snv_number", "gap_ratio"] + list(md_df.columns)[1:])
+    else:
+        opt_df = pd.DataFrame(snv_generator, columns = ["entry_id", "seq1", "seq2", "snv_rate", "snv_number", "gap_ratio"])
+    
+    opt_file = os.path.abspath(pars["opt_tab"])    
+    opt_df.to_csv(opt_file, sep = "\t", index = False)
     
