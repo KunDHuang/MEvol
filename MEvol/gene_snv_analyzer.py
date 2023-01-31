@@ -28,7 +28,7 @@ def read_args(args):
                                      This program is to replace gene names in each multiple sequence alignment file with their corresponding genome names.
                                          '''),
                                      epilog = textwrap.dedent('''\
-                                        examples:
+                                        examples:gene_snv_analyzer.py --gene_family_dir pan_genome_sequences --gene_table gene_presence_absence.csv --nproc 10 --opt_dir output_dir --concat_tab concat_snv_rates.tsv 
                                        '''))
 
     parser.add_argument('--gene_family_dir',
@@ -80,7 +80,13 @@ def read_args(args):
                         nargs = '?',
                         help = 'Specify the output folder name where individual files will be stored. default: [output_dir]',
                         type = str,
-                        default = 'output_dir')    
+                        default = 'output_dir')
+    
+    parser.add_argument('--concat_tab',
+                        nargs = "?",
+                        help = 'Specify the name of an output file if you want to concatenate individual gene alignments in one table. default: [None]',
+                        type = str,
+                        default = None)    
 
     return vars(parser.parse_args())
 
@@ -152,3 +158,8 @@ if __name__ == "__main__":
    gene_alns = select_gene_alns(gene_alns, coreness = pars['coreness'])
    
    gene_snv_files = calc_gene_snv_nproc(gene_alns, pars['opt_dir'], cols_keep_o_rm = pars['cols_kept_o_rm'], entry_id = pars['entry_col'], metadata = pars['metadata'], nproc = pars['nproc'])
+   
+   if pars['concat_tab']:
+       opt_concat_tab = pars['opt_dir'] + '/' + pars['concat_tab']
+       concat_df = pd.concat([pd.read_csv(gene_snv_file, sep = '\t', index_col = False) for gene_snv_file in gene_snv_files])
+       concat_df.to_csv(opt_concat_tab, sep = '\t', index = False)
