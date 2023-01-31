@@ -63,6 +63,7 @@ def renamingNoutput(args):
     if aln_seqs_record4opt:
         opt_aln_file = create_folder(opt_dir) + '/' + gene_family + '.fa.aln'
         SeqIO.write(aln_seqs_record4opt, opt_aln_file, "fasta")
+        return opt_aln_file
     else:
         return None
 
@@ -74,10 +75,17 @@ def renamingNoutput_nproc(gene_abs_pres_df, aln_seqs_files, opt_dir_path, nproc 
     opt_dir_path = create_folder(opt_dir_path)
     packed_args = [(gene_abs_pres_df, os.path.basename(aln_seqs_file).split(".")[0], aln_seqs_file, opt_dir_path) for aln_seqs_file in aln_seqs_files]
     pool = mp.Pool(processes = nproc)
-    pool.map(renamingNoutput, packed_args)
+    opt_files = pool.map(renamingNoutput, packed_args)
+    return opt_files
     
-    
-     
+def clean_df(df):
+    # replace special characters with '_' in the Gene column
+    # so that gene names in the gene absence and presence table can be matched with multiple sequence alignment files.
+    special_chars = list(r"""`~!@#$%^&*()_-+={[}}|\:;"'<,>.?/""")
+    for i in special_chars:
+        df['Gene'] = df['Gene'].str.replace(i, '_', regex=True)
+        
+    return df    
 
 if __name__ == "__main__":
     def read_args(args):
@@ -116,14 +124,6 @@ if __name__ == "__main__":
 
         return vars(parser.parse_args())
     
-    def clean_df(df):
-        # replace special characters with '_' in the Gene column
-        # so that gene names in the gene absence and presence table can be matched with multiple sequence alignment files.
-        special_chars = list(r"""`~!@#$%^&*()_-+={[}}|\:;"'<,>.?/""")
-        for i in special_chars:
-            df['Gene'] = df['Gene'].str.replace(i, '_')
-        
-        return df
         
     pars = read_args(sys.argv)
     gene_abs_pres_df = pd.read_csv(pars['gene_table'], index_col = False)

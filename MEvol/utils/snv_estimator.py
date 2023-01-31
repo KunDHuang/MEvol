@@ -64,7 +64,8 @@ def calc_snv_all_pairs(aln_fasta):
         snv_est = calc_snv_per_pair(packed_args)
         yield snv_est
         
-def add_metadata(snv_generator, md_df, entry_id):
+def add_metadata(args):
+    snv_generator, md_df, entry_id = args
     # snv_generator: the generator which stores SNV information
     # md_df: the metadata of genomes
     # This function is to append metadata to the pairwise SNV rates
@@ -98,7 +99,7 @@ if __name__ == "__main__":
                                          This program is to estimate pairwise SNV rates for a fasta file.
                                          '''),
                                         epilog = textwrap.dedent('''\
-                                        examples: 
+                                        examples: snv_estimator.py --fasta yvcJ.fa.aln --opt_tab yvcJ_snvrates.tsv
                                        '''))
         parser.add_argument('--fasta',
                         nargs = '?',
@@ -162,7 +163,7 @@ if __name__ == "__main__":
         else:
             e_id = list(md_df.columns)[0]
         
-        opt_df = pd.DataFrame(add_metadata(snv_generator, md_df, e_id), 
+        opt_df = pd.DataFrame(add_metadata([snv_generator, md_df, e_id]), 
                               columns = ["entry_id", "seq1", "seq2", "snv_rate", "snv_number", "gap_ratio"] + list(md_df.columns)[1:])
     else:
         opt_df = pd.DataFrame(snv_generator, columns = ["entry_id", "seq1", "seq2", "snv_rate", "snv_number", "gap_ratio"])
