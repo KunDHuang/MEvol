@@ -10,7 +10,7 @@ import argparse
 import textwrap
 import sys
 import tempfile
-from utils.original_name_finder import renamingNoutput_nproc, clean_df
+from utils.original_name_finder import renamingNoutput_nproc, clean_df, screen_aln_files
 
 """
 NAME: snv_analyzer.py
@@ -143,23 +143,30 @@ def create_folder(name):
     return folder_name        
    
 if __name__ == "__main__":
-   pars = read_args(sys.argv)
-   gene_alns = subprocess.getoutput("ls {}/*".format(pars['gene_family_dir'])).split("\n")
-   if pars['gene_table']:
-      tmp_folder = tempfile.mkdtemp(dir = create_folder(pars['opt_dir'])) # make a temporary file in the current directory
-      gene_abs_pres_df = pd.read_csv(pars['gene_table'], index_col = False)
-      gene_abs_pres_df = clean_df(gene_abs_pres_df)                                     
-      gene_alns = renamingNoutput_nproc(gene_abs_pres_df,
-                                        gene_alns,
-                                        tmp_folder,
-                                        pars['nproc']
-                                        )
-   gene_alns = [gene_aln for gene_aln in gene_alns if gene_aln is not None]
-   gene_alns = select_gene_alns(gene_alns, coreness = pars['coreness'])
+    pars = read_args(sys.argv)
+    gene_alns = subprocess.getoutput("ls {}/*".format(pars['gene_family_dir'])).split("\n")
+    if pars['gene_table']:
+        tmp_folder = tempfile.mkdtemp(dir = create_folder(pars['opt_dir'])) # make a temporary file in the current directory
+        gene_abs_pres_df = pd.read_csv(pars['gene_table'], index_col = False)
+        gene_abs_pres_df = clean_df(gene_abs_pres_df)
+        qc_files = screen_aln_files(gene_abs_pres_df, gene_alns)
+        gene_alns = qc_files[0]
+        problem_alns = qc_files[1]
+        if len(problem_alns) > 0:
+            warning_info = ["Gene alignment files belowe could not be found in the gene presence and absence table, please check the naming consistency:"] + problem_alns
+            warning_info = "\n".join(warning_info) + "\n"
+            sys.stdout.write(warning_info)                                     
+        gene_alns = renamingNoutput_nproc(gene_abs_pres_df,
+                                         gene_alns,
+                                         tmp_folder,
+                                         pars['nproc']
+                                         )
+    gene_alns = [gene_aln for gene_aln in gene_alns if gene_aln is not None]
+    gene_alns = select_gene_alns(gene_alns, coreness = pars['coreness'])
    
-   gene_snv_files = calc_gene_snv_nproc(gene_alns, pars['opt_dir'], cols_keep_o_rm = pars['cols_kept_o_rm'], entry_id = pars['entry_col'], metadata = pars['metadata'], nproc = pars['nproc'])
+    gene_snv_files = calc_gene_snv_nproc(gene_alns, pars['opt_dir'], cols_keep_o_rm = pars['cols_kept_o_rm'], entry_id = pars['entry_col'], metadata = pars['metadata'], nproc = pars['nproc'])
    
-   if pars['concat_tab']:
-       opt_concat_tab = pars['opt_dir'] + '/' + pars['concat_tab']
-       concat_df = pd.concat([pd.read_csv(gene_snv_file, sep = '\t', index_col = False) for gene_snv_file in gene_snv_files])
-       concat_df.to_csv(opt_concat_tab, sep = '\t', index = False)
+    if pars['concat_tab']:
+        opt_concat_tab = pars['opt_dir'] + '/' + pars['concat_tab']
+        concat_df = pd.concat([pd.read_csv(gene_snv_file, sep = '\t', index_col = False) for gene_snv_file in gene_snv_files])
+        concat_df.to_csv(opt_concat_tab, sep = '\t', index = False)

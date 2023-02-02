@@ -87,6 +87,19 @@ def clean_df(df):
         
     return df    
 
+def screen_aln_files(gene_abs_pres_df, aln_files):
+    genes = gene_abs_pres_df['Gene'].to_list()
+    screened_aln_files = []
+    problematic_aln_files = []
+    for aln_file in aln_files:
+        gene_family_name = os.path.basename(aln_file).split(".")[0]
+        if gene_family_name in genes:
+            screened_aln_files.append(aln_file)
+        else:
+            problematic_aln_files.append(aln_file)
+    
+    return screened_aln_files, problematic_aln_files
+    
 if __name__ == "__main__":
     def read_args(args):
     # This function is to parse arguments
@@ -126,10 +139,17 @@ if __name__ == "__main__":
     
         
     pars = read_args(sys.argv)
-    gene_abs_pres_df = pd.read_csv(pars['gene_table'], index_col = False)
+    gene_abs_pres_df = pd.read_csv(pars['gene_table'], index_col = False, low_memory = False)
     gene_abs_pres_df = clean_df(gene_abs_pres_df)    
     alns = subprocess.getoutput("ls {}/*".format(pars['gene_family_dir'])).split("\n")
-    renamingNoutput_nproc(gene_abs_pres_df, alns, pars['opt_dir'], pars['nproc'])
+    qc_files = screen_aln_files(gene_abs_pres_df, alns)
+    postqc_alns = qc_files[0]
+    problem_alns = qc_files[1]
+    if len(problem_alns) > 0:
+        warning_info = ["Gene alignment files belowe could not be found in the gene presence and absence table, please check the naming consistency:"] + problem_alns
+        warning_info = "\n".join(warning_info) + "\n"
+        sys.stdout.write(warning_info)    
+    renamingNoutput_nproc(gene_abs_pres_df, postqc_alns, pars['opt_dir'], pars['nproc'])
     
     
 
