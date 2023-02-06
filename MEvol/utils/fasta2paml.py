@@ -29,8 +29,10 @@ def paml_structure(fasta):
             else:
                 seq = seq + "\n"
             return seq
-            
-    seq_records = list(SeqIO.parse(fasta, "fasta"))
+
+    seq_dict = SeqIO.to_dict(SeqIO.parse(fasta, "fasta"))  
+    seq_records = [seq_dict[seq_id] for seq_id in sorted(seq_dict.keys())]
+    
     nr_seqs = str(len(seq_records))
     seq_lens = [len(i.seq) for i in seq_records]
     
