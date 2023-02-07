@@ -41,12 +41,13 @@ def renaming(gene_abs_pres_df, gene_family, aln_seqs):
     gene_abs_pres_df = gene_abs_pres_df.drop(cols_to_drop, axis = 1)
     genomes = gene_abs_pres_df.columns[1:]
     gene_family_df = gene_abs_pres_df[gene_abs_pres_df['Gene'] == gene_family]
-    
     gene2genome_map = {}
+
     for genome in genomes:
         gene_id = gene_family_df.loc[gene_family_df['Gene'] == gene_family, genome].iloc[0]
         if not pd.isna(gene_id):
-            if len(gene_id.split("\t")) > 1:
+            if (len(gene_id.split("\t")) > 1) or (gene_family_df['Gene'].to_list().count(gene_family) > 1):
+                # skip the gene if this gene has duplicates or this gene is from a gene family with arbitrary name. 
                 return None
             else:
                 gene2genome_map[gene_id] = genome
