@@ -10,7 +10,7 @@ import argparse
 import textwrap
 import sys
 import tempfile
-from utils.original_name_finder import renamingNoutput_nproc, clean_df, screen_aln_files
+from utils.original_name_finder import renamingNoutput_nproc, clean_df, screen_aln_files, select_gene_alns
 
 """
 NAME: snv_analyzer.py
@@ -66,8 +66,8 @@ def read_args(args):
 
     parser.add_argument('--coreness',
                         nargs = '?',
-                        help = 'Specify the minimum number of genomes across a gene for this gene to be determined as core gene. Default, the maximum number of genomes (automated estimation) in the all core genes.',
-                        type = int,
+                        help = 'Specify the minimum number of genomes across a gene for this gene to be determined as core gene. Default, the maximum number of genomes (automated estimation) in the all core genes. Note: 1 is the minimum input number',
+                        type = float,
                         default = None)
     
     parser.add_argument('--gene_table',
@@ -90,20 +90,6 @@ def read_args(args):
 
     return vars(parser.parse_args())
 
-def select_gene_alns(gene_alns_list, coreness = None):
-    # gene_alns_list: a list of gene alignment fasta files.
-    # coreness: the minimum genenome a gene alignment fasta file should contain for deteriming a gene as a core gene of one species.
-    if coreness:
-       pass
-    else:
-       coreness = [len(list(SeqIO.parse(gene_aln, "fasta"))) for gene_aln in gene_alns_list]           
-       coreness = max(coreness)
-    
-    for gene_aln in gene_alns_list:
-       nr_genomes = len(list(SeqIO.parse(gene_aln, "fasta")))
-       if nr_genomes >= coreness:
-          yield gene_aln
-          
 def call_snv_estimator(args):
     gene_aln, metadata, entry_id, cols_keep_o_rm, opt_tab = args
     snv_estimator = os.path.dirname(os.path.abspath(__file__)) + "/utils/snv_estimator.py"
