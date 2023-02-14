@@ -33,7 +33,7 @@ class GeneEval:
         
         ref_snv = self.gene_snv_df[self.gene_snv_df[self.md_var] == ref_group]['snv_rate'].to_list()
         test_snv = self.gene_snv_df[self.gene_snv_df[self.md_var] == test_group]['snv_rate'].to_list()
-        pvalue = ranksums(ref_snv, test_snv).pvalue
+        pvalue = ranksums(ref_snv, test_snv, alternative = 'less').pvalue
         return pvalue
     
     def oneway_anova_test(self, ref_group, test_group):
@@ -42,7 +42,7 @@ class GeneEval:
         
         ref_snv = self.gene_snv_df[self.gene_snv_df[self.md_var] == ref_group]['snv_rate'].to_list()
         test_snv = self.gene_snv_df[self.gene_snv_df[self.md_var] == test_group]['snv_rate'].to_list()
-        pvalue = f_oneway(ref_snv, test_snv).pvalue
+        pvalue = f_oneway(ref_snv, test_snv, alternative = 'less').pvalue
         return pvalue
     
     def person_cor_test(self):
