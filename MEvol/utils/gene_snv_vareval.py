@@ -118,7 +118,7 @@ if __name__ == "__main__":
                                          This program is to examine genes whose pairwise SNV rates are significantly different between groups
                                          '''),
                                         epilog = textwrap.dedent('''\
-                                        examples:  
+                                        examples: gene_snv_vareval.py --snv_rate_file s__Alistipes_putredinis.concat.tsv --variable Diet --ref_factor Vegan --test_method ranksums --output s__Alistipes_putredinis.vegan_ref.tsv 
                                        '''))
         parser.add_argument('--snv_rate_file',
                         nargs = '?',
