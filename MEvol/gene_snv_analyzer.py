@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import subprocess
 import multiprocessing as mp
 from Bio import SeqIO
 import pandas as pd

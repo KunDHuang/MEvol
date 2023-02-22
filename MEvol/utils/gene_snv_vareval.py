@@ -70,7 +70,7 @@ def generate_combinations(snv_df, md_var, reference):
         if factor1 == factor2:
             ref_group.append(comb)
         else:
-            test_group.append(comb)
+            test_group.append(disorder_variable(comb))
     return ref_group[0], *test_group
     
 def eval_gene(gene, snv_concat_df, md_var, ref_factor = None, method = 'ranksums'):
@@ -107,7 +107,13 @@ def eval_gene(gene, snv_concat_df, md_var, ref_factor = None, method = 'ranksums
             sys.exit("To test categorical data, you need to specify the reference factor.")
 
     return sub_df
-        
+
+def disorder_variable(x):
+    
+    new_comb = "$".join(sorted(x.split("$")))
+    
+    return new_comb
+            
         
 if __name__ == "__main__":
     def read_args(args):
@@ -154,6 +160,7 @@ if __name__ == "__main__":
     pars = read_args(sys.argv)
     
     snv_concat_df = pd.read_csv(pars["snv_rate_file"], sep = '\t', index_col = False)
+    snv_concat_df[pars['variable']] = snv_concat_df[pars['variable']].apply(disorder_variable)
     genes = list(set(snv_concat_df['entry_id']))
     genes_pvalue_dfs = [eval_gene(gene, snv_concat_df, pars['variable'], ref_factor = pars['ref_factor'], method = pars['test_method']) for gene in genes]
     concat_df = pd.concat(genes_pvalue_dfs)
