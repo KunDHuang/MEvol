@@ -27,22 +27,22 @@ class GeneEval:
         self.gene_snv_df = gene_snv_df
         self.md_var = md_var
     
-    def ranksums_test(self, ref_group, test_group):
+    def ranksums_test(self, ref_group, test_group, alter = "less"):
         # ref_group: The reference group in the comparison
         # test_group: The test group in the comparison
         
         ref_snv = self.gene_snv_df[self.gene_snv_df[self.md_var] == ref_group]['snv_rate'].to_list()
         test_snv = self.gene_snv_df[self.gene_snv_df[self.md_var] == test_group]['snv_rate'].to_list()
-        pvalue = ranksums(ref_snv, test_snv, alternative = 'less').pvalue
+        pvalue = ranksums(ref_snv, test_snv, alternative = alter).pvalue
         return pvalue
     
-    def oneway_anova_test(self, ref_group, test_group):
+    def oneway_anova_test(self, ref_group, test_group, alter = "less"):
         # ref_group: The reference group in the comparison
         # test_group: The test group in the comparison
         
         ref_snv = self.gene_snv_df[self.gene_snv_df[self.md_var] == ref_group]['snv_rate'].to_list()
         test_snv = self.gene_snv_df[self.gene_snv_df[self.md_var] == test_group]['snv_rate'].to_list()
-        pvalue = f_oneway(ref_snv, test_snv, alternative = 'less').pvalue
+        pvalue = f_oneway(ref_snv, test_snv, alternative = alter).pvalue
         return pvalue
     
     def person_cor_test(self):
@@ -72,8 +72,21 @@ def generate_combinations(snv_df, md_var, reference):
         else:
             test_group.append(disorder_variable(comb))
     return ref_group[0], *test_group
+
+def generate_combinations_intra(snv_df, md_var, reference):
+    # snv_df: the input SNV dataframe
+    # md_var: the variable of interesting
+    # reference: the reference factor
+    all_factors = list(set([l for i in snv_df[md_var] for l in i.split("$")]))
+    combs = [i + "$" + i for i in all_factors]
+    ref_group = [reference + "$" + reference]
+    test_group = [i for i in combs if i != ref_group[0]]
     
-def eval_gene(gene, snv_concat_df, md_var, ref_factor = None, method = 'ranksums'):
+    return ref_group[0], *test_group
+        
+    
+
+def eval_gene(gene, snv_concat_df, md_var, ref_factor = None, method = 'ranksums', alter = 'less', comparison = 'inter'):
     # genes_lst: a list of genes for assessment.
     # snv_concat_df: the concatnated dataframe containing pairwise SNV rates.
     # md_var: the metadata variable to be assessed.
@@ -92,14 +105,19 @@ def eval_gene(gene, snv_concat_df, md_var, ref_factor = None, method = 'ranksums
             sub_df = pd.DataFrame(matrix, columns = ['gene', 'cor_eff', 'pvalue'])
     else:
         if ref_factor:
-            combs = generate_combinations(snv_concat_df, md_var, ref_factor)
+            if comparison == 'inter':
+                combs = generate_combinations(snv_concat_df, md_var, ref_factor)
+            elif comparison == 'intra':
+                combs = generate_combinations_intra(snv_concat_df, md_var, ref_factor)
+            else:
+                sys.exit("Specify comparison for inter or intra group.")
             ref_pair = combs[0]
             test_pairs = combs[1:]
             for test_pair in test_pairs:
                 if method == 'ranksums':
-                    pvalue = eval_obj.ranksums_test(ref_pair, test_pair)
+                    pvalue = eval_obj.ranksums_test(ref_pair, test_pair, alter)
                 elif method == 'oneway_anova':
-                    pvalue = eval_obj.oneway_anova_test(ref_pair, test_pair)
+                    pvalue = eval_obj.oneway_anova_test(ref_pair, test_pair, alter)
                 matrix.append([gene, ref_pair, test_pair, pvalue])
             sub_df = pd.DataFrame(matrix, columns = ['gene', 'ref_group', 'test_group', 'pvalue'])
             
@@ -150,6 +168,18 @@ if __name__ == "__main__":
                         type = str,
                         default = 'ranksums')
         
+        parser.add_argument('--alternative',
+                        nargs = '?',
+                        help = 'Specify the alternative as [less] or [more] if you use ranksum/oneway_anova test. default [less]',
+                        type = str,
+                        default = 'less')
+        
+        parser.add_argument('--comparison',
+                        nargs = '?',
+                        help = 'Specify if you want to compare [intra] or [inter] group. default: [intra]',
+                        type = str,
+                        default = 'intra')        
+        
         parser.add_argument('--output',
                         nargs = '?',
                         help = 'Specify the output file name.',
@@ -157,12 +187,13 @@ if __name__ == "__main__":
                         default = None)
         
         return vars(parser.parse_args())
+    
     pars = read_args(sys.argv)
     
     snv_concat_df = pd.read_csv(pars["snv_rate_file"], sep = '\t', index_col = False)
     snv_concat_df[pars['variable']] = snv_concat_df[pars['variable']].apply(disorder_variable)
     genes = list(set(snv_concat_df['entry_id']))
-    genes_pvalue_dfs = [eval_gene(gene, snv_concat_df, pars['variable'], ref_factor = pars['ref_factor'], method = pars['test_method']) for gene in genes]
+    genes_pvalue_dfs = [eval_gene(gene, snv_concat_df, pars['variable'], ref_factor = pars['ref_factor'], method = pars['test_method'], alter = pars["alternative"], comparison = pars["comparison"]) for gene in genes]
     concat_df = pd.concat(genes_pvalue_dfs)
     concat_df['fdr'] = multipletests(concat_df['pvalue'], alpha= 0.05, method='fdr_bh')[1]
     concat_df = concat_df[concat_df['fdr'] <= 0.05]
