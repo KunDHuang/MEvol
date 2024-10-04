@@ -43,9 +43,9 @@ if __name__ == "__main__":
                                          '''))
         parser.add_argument('--puppet_tool',
                         nargs = '?',
-                        help = 'Input the absolute path to the puppet tool. Default: [/vol/projects/khuang/anaconda3/bin/codeml]',
+                        help = 'Input the absolute path to the puppet tool. Default: [/vol/projects/khuang/tools/paml/bin/codeml]',
                         type = str,
-                        default = '/vol/projects/khuang/anaconda3/bin/codeml')
+                        default = '/vol/projects/khuang/tools/paml/bin/codeml')
 
         parser.add_argument('--puppet_clt',
                         nargs = '?',

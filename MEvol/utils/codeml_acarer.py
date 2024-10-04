@@ -9,6 +9,7 @@ import sys
 import argparse
 import textwrap
 import numpy as np
+import random
 
 """
 NAME: codeml_acarer.py
@@ -30,7 +31,6 @@ class ATeam:
     def get_lnL(self, model_idx):
         
         codeml_parse = codeml.read(self.codeml_outfile)
-        
         return codeml_parse['NSsites'][model_idx]['lnL']
     
     def get_omega(self, model_idx):
@@ -51,7 +51,7 @@ class ATeam:
         elif model_idx == 2:
             
             omega_proportions = codeml_parse['NSsites'][model_idx]['parameters']['site classes']
-            matrix = [] 
+            matrix = []
             for c in omega_proportions:
                 omega = float(omega_proportions[c]['omega'])
                 prop = float(omega_proportions[c]['proportion'])
@@ -159,7 +159,6 @@ if __name__ == "__main__":
         codeml_opt_files = subprocess.getoutput("readlink -f {}/*".format(pars["codeml_output"])).split("\n")
         valid_files = [file for file in codeml_opt_files if os.stat(file).st_size != 0]
         empty_files = [file for file in codeml_opt_files if os.stat(file).st_size == 0]
-        
         if len(empty_files) > 0:
             warning_opt = open(pars["output"] + ".warning", "w")
             warning_opt.write("problematic files mostly due to empty content:" + "\n")
@@ -169,6 +168,7 @@ if __name__ == "__main__":
         
         dfs = []     
         for file in valid_files:
+            print(file)
             identifier = file.split("/")[-1].split(".")[0]
             df_ = parse_one_file(file)
             df_.insert(0, "id", [identifier] * len(df_))
