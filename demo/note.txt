@@ -1,0 +1,1 @@
+The gene families are come from "ls -1 "${C_DIR}/s__Alistipes_putredinis/res/pan_genome_sequences/" | head -n 25 | xargs -I {} cp "${C_DIR}/s__Alistipes_putredinis/res/pan_genome_sequences/{}" ${C_DIR}/demo/gene_fam/"
